@@ -1,0 +1,75 @@
+pos開く
+ジャーナル実行
+
+アセンブリ化のコンポーネントを1階層のみ取得して、
+アイテムID リビジョン 品番 品名　を取得。CSVに吐き出す
+
+で、excel立ち上げ
+ボタンを押す
+
+と、品番のハイフン部分から品名を読むかなあ
+
+
+
+
+
+' ファイル出力用変数
+Dim filePath As String = "C:\path\to\output.csv"
+Dim file As New System.IO.StreamWriter(filePath, False)
+
+' アセンブリ内の全てのコンポーネントを取得
+Dim workPart As Part = theSession.Parts.Work
+Dim displayPart As Part = theSession.Parts.Display
+Dim components As Component() = workPart.ComponentAssembly.RootComponent.GetChildren()
+
+' CSVファイルに書き出すヘッダを設定
+Dim header As String = "Item ID,Item Revision,Part Name"
+file.WriteLine(header)
+
+' アセンブリ内の全てのパートに対して、アイテムID、アイテムリビジョン、パート名を取得してCSVファイルに書き出す
+For Each Tcomp As Component In components
+        Dim itemId As String = Tcomp.GetStringAttribute("ITEM_ID")
+        Dim itemRev As String = Tcomp.GetStringAttribute("ITEM_REV")
+        Dim partName As String = Tcomp.Name
+        Dim row As String = String.Format("{0},{1},{2}", itemId, itemRev, partName)
+        file.WriteLine(row)
+Next
+
+' ファイルを閉じる
+file.Close()
+
+' 完了メッセージを表示
+theUI.NXMessageBox.Show("Export to CSV", NXMessageBox.DialogType.Information, "CSV file exported successfully.")
+
+
+' ファイル選択ダイアログを表示して、保存先のパスを取得する
+Dim saveFileDialog As New System.Windows.Forms.SaveFileDialog()
+saveFileDialog.Filter = "CSV file|*.csv"
+If saveFileDialog.ShowDialog() = System.Windows.Forms.DialogResult.OK Then
+    Dim filePath As String = saveFileDialog.FileName
+
+    ' CSVファイルを作成し、ヘッダを書き込む
+    Dim file As New System.IO.StreamWriter(filePath, False)
+    Dim header As String = "Item ID,Item Revision,Part Name"
+    file.WriteLine(header)
+
+    ' アセンブリ内の全てのパートに対して、アイテムID、アイテムリビジョン、パート名を取得してCSVファイルに書き出す
+    For Each component As Component In components
+        If component.Prototype is Nothing Then ' パートファイルの場合のみ処理する
+            Dim part As Part = CType(component.Prototype, Part)
+            Dim itemId As String = part.GetStringAttribute("ITEM_ID")
+            Dim itemRev As String = part.GetStringAttribute("ITEM_REV")
+            Dim partName As String = part.Name
+            Dim row As String = String.Format("{0},{1},{2}", itemId, itemRev, partName)
+            file.WriteLine(row)
+        End If
+    Next
+
+    ' ファイルを閉じる
+    file.Close()
+
+    ' 完了メッセージを表示
+    theUI.NXMessageBox.Show("Export to CSV", NXMessageBox.DialogType.Information, "CSV file exported successfully.")
+End If
+
+
