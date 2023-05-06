@@ -1,0 +1,27 @@
+' ファイル出力用変数
+Dim filePath As String = "C:\path\to\output.csv"
+Dim file As New System.IO.StreamWriter(filePath, False)
+
+' アセンブリ内の全てのコンポーネントを取得
+Dim workPart As Part = theSession.Parts.Work
+Dim displayPart As Part = theSession.Parts.Display
+Dim components As Component() = workPart.ComponentAssembly.RootComponent.GetChildren()
+
+' CSVファイルに書き出すヘッダを設定
+Dim header As String = "Item ID,Item Revision,Part Name"
+file.WriteLine(header)
+
+' アセンブリ内の全てのパートに対して、アイテムID、アイテムリビジョン、パート名を取得してCSVファイルに書き出す
+For Each Tcomp As Component In components
+        Dim itemId As String = Tcomp.GetStringAttribute("ITEM_ID")
+        Dim itemRev As String = Tcomp.GetStringAttribute("ITEM_REV")
+        Dim partName As String = Tcomp.Name
+        Dim row As String = String.Format("{0},{1},{2}", itemId, itemRev, partName)
+        file.WriteLine(row)
+Next
+
+' ファイルを閉じる
+file.Close()
+
+' 完了メッセージを表示
+theUI.NXMessageBox.Show("Export to CSV", NXMessageBox.DialogType.Information, "CSV file exported successfully.")
