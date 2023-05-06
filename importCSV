@@ -1,0 +1,99 @@
+Sub ImportCSV()
+
+    Dim FilePath As Variant
+    Dim RowNum As Long
+    Dim ColNum As Integer
+    Dim CurrentLine As String
+    Dim CurrentCell As String
+    Dim SheetName As String
+    Dim i As Integer
+    
+    ' ファイルを選択するダイアログを表示
+    FilePath = Application.GetOpenFilename("CSVファイル (*.csv), *.csv")
+    
+    ' キャンセルされた場合は終了
+    If VarType(FilePath) = vbBoolean Then Exit Sub
+    
+    ' シート名を設定
+    SheetName = "CSV Import"
+    
+    ' シートが既に存在する場合は、名前を変更する
+    i = 1
+    Do While WorksheetExists(SheetName)
+        i = i + 1
+        SheetName = "CSV Import" & Format(i, "00")
+    Loop
+    
+    ' 新しいシートを作成
+    Dim ws As Worksheet
+    Set ws = Sheets.Add(After:=ActiveSheet)
+    ws.Name = SheetName
+    
+    ' ヘッダーを書き込む
+    ws.Cells(1, 1).Value = "アイテムID"
+    ws.Cells(1, 2).Value = "アイテムリビジョン"
+    ws.Cells(1, 3).Value = "品番"
+    ws.Cells(1, 4).Value = "品名"
+    
+    ' ヘッダーの書式を設定する
+    With ws.Rows(1)
+    .Interior.Color = RGB(155, 194, 230) ' #9BC2E6
+    .RowHeight = 30
+    .HorizontalAlignment = xlCenter
+    .Font.Size = 14
+    End With
+    
+    ' 列幅を設定する
+    ws.Columns(1).ColumnWidth = 25
+    ws.Columns(2).ColumnWidth = 10
+    ws.Columns(3).ColumnWidth = 50
+    ws.Columns(4).ColumnWidth = 50
+    
+    ' フォントを設定する
+    ws.Cells.Font.Name = "Meiryo UI"
+    
+    ' ファイルを開く
+    Open FilePath For Input As #1
+    
+    ' 行番号を初期化
+    RowNum = 2 ' ヘッダーの下にデータを追加するため、2から開始
+    
+    ' ファイルの最後まで繰り返す
+    Do Until EOF(1)
+    
+        ' 1行読み込む
+        Line Input #1, CurrentLine
+        
+        ' カンマで区切る
+        ColNum = 1
+        Do While InStr(CurrentLine, ",") > 0
+            CurrentCell = Left(CurrentLine, InStr(CurrentLine, ",") - 1)
+            CurrentLine = Mid(CurrentLine, InStr(CurrentLine, ",") + 1)
+            ws.Cells(RowNum, ColNum).Value = CurrentCell
+            ColNum = ColNum + 1
+        Loop
+        
+        ' 最後のセルを追加
+        ws.Cells(RowNum, ColNum).Value = CurrentLine
+        
+        ' 行番号をインクリメント
+        RowNum = RowNum + 1
+    
+    Loop
+    
+    ' ファイルを閉じる
+    Close #1
+    
+End Sub
+
+Function WorksheetExists(shtName As String, Optional wb As Workbook) As Boolean
+    ' シートが存在するかどうかを調べる
+    Dim sht As Worksheet
+    
+    If wb Is Nothing Then Set wb = ActiveWorkbook
+        On Error Resume Next
+    Set sht = wb.Worksheets(shtName)
+    On Error GoTo 0
+    
+    WorksheetExists = Not sht Is Nothing
+End Function
