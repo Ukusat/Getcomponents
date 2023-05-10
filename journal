@@ -25,3 +25,117 @@ file.Close()
 
 ' 完了メッセージを表示
 theUI.NXMessageBox.Show("Export to CSV", NXMessageBox.DialogType.Information, "CSV file exported successfully.")
+
+Option Strict Off
+Imports System
+Imports NXOpen
+
+Module PartInfoExporter
+    Dim theSession As Session = Session.GetSession()
+    Dim theUI As UI = UI.GetUI()
+    Dim lw As ListingWindow = theSession.ListingWindow()
+
+    Sub Main()
+        ' アクティブなパートを取得
+        Dim workPart As Part = theSession.Parts.Work
+
+        ' 選択されたコンポーネントのリストを取得
+        Dim selectedComponents() As Component = theUI.SelectionManager.GetSelectedComponents()
+
+        If selectedComponents.Length = 0 Then
+            ' アクティブなパート内のすべてのパートを取得
+            Dim components() As Component = workPart.ComponentAssembly.RootComponent.GetChildren()
+
+            ' ヘッダを表示
+            lw.WriteLine("Item ID" & vbTab & "Item Revision" & vbTab & "Part Name")
+
+            ' 各パートの情報を取得して表示
+            For Each component As Component In components
+                If component.Prototype IsNot Nothing Then
+                    Dim part As Part = CType(component.Prototype, Part)
+                    Dim itemId As String = part.GetStringAttribute("ITEM_ID")
+                    Dim itemRev As String = part.GetStringAttribute("ITEM_REV")
+                    Dim partName As String = part.Name
+
+                    lw.WriteLine(itemId & vbTab & itemRev & vbTab & partName)
+                End If
+            Next
+        Else
+            ' 選択されたコンポーネント内のすべてのパートを取得
+            Dim components() As Component = selectedComponents(0).GetChildren()
+
+            ' ヘッダを表示
+            lw.WriteLine("Item ID" & vbTab & "Item Revision" & vbTab & "Part Name")
+
+            ' 各パートの情報を取得して表示
+            For Each component As Component In components
+                If component.Prototype IsNot Nothing Then
+                    Dim part As Part = CType(component.Prototype, Part)
+                    Dim itemId As String = part.GetStringAttribute("ITEM_ID")
+                    Dim itemRev As String = part.GetStringAttribute("ITEM_REV")
+                    Dim partName As String = part.Name
+
+                    lw.WriteLine(itemId & vbTab & itemRev & vbTab & partName)
+                End If
+            Next
+        End If
+
+        ' 終了処理
+        lw.Open()
+        lw.Close()
+    End Sub
+End Module
+
+Imports System.Windows.Forms
+Imports Microsoft.Office.Interop
+
+Public Module Main
+    Sub Main()
+        Dim theSession As Session = Session.GetSession()
+        Dim workPart As Part = theSession.Parts.Work
+
+        ' Excelアプリケーションを起動する
+        Dim excelApp As New Excel.Application()
+        excelApp.Visible = True
+
+        ' 新規ワークブックを作成する
+        Dim workbook As Excel.Workbook = excelApp.Workbooks.Add()
+        Dim worksheet As Excel.Worksheet = workbook.ActiveSheet
+
+        ' ヘッダを出力する
+        worksheet.Cells(1, 1).Value = "Item ID"
+        worksheet.Cells(1, 2).Value = "Item Revision"
+        worksheet.Cells(1, 3).Value = "Part Name"
+
+        ' パートのアイテムID、アイテムリビジョン、パート名を取得し、Excelに出力する
+        Dim rowIndex As Integer = 2
+        For Each component As Component In workPart.ComponentAssembly.RootComponent.GetChildren()
+            If TypeOf component.Prototype Is Part Then ' パートファイルの場合のみ処理する
+                Dim part As Part = CType(component.Prototype, Part)
+                Dim itemId As String = part.GetStringAttribute("ITEM_ID")
+                Dim itemRev As String = part.GetStringAttribute("ITEM_REV")
+                Dim partName As String = part.Name
+
+                worksheet.Cells(rowIndex, 1).Value = itemId
+                worksheet.Cells(rowIndex, 2).Value = itemRev
+                worksheet.Cells(rowIndex, 3).Value = partName
+
+                rowIndex += 1
+            End If
+        Next
+
+        ' Excelファイルを保存する
+        Dim saveFileDialog As New SaveFileDialog()
+        saveFileDialog.Filter = "Excel files (*.xlsx)|*.xlsx"
+        saveFileDialog.RestoreDirectory = True
+        If saveFileDialog.ShowDialog() = DialogResult.OK Then
+            workbook.SaveAs(saveFileDialog.FileName)
+        End If
+
+        ' Excelアプリケーションを終了する
+        workbook.Close(False)
+        excelApp.Quit()
+    End Sub
+End Module
+
+
