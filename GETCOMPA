@@ -1,0 +1,93 @@
+
+
+
+
+Option Strict Off
+Imports System
+Imports NXOpen
+
+Module PartInfoExporter
+    Dim theSession As Session = Session.GetSession()
+    Dim theUI As UI = UI.GetUI()
+    Dim lw As ListingWindow = theSession.ListingWindow()
+
+    Sub Main()
+      
+     ' アセンブリ内の全てのコンポーネントを取得
+Dim workPart As Part = theSession.Parts.Work
+Dim components As Component() = workPart.ComponentAssembly.RootComponent.GetChildren()
+
+' 情報ウィンドウを開く
+Dim infoWindow As ListingWindow = theSession.ListingWindow
+infoWindow.Open()
+
+' CSVファイルに書き出すヘッダを設定
+Dim header As String = "Item ID,Item Revision,Part Name"
+infoWindow.WriteFullline(header)
+
+' アセンブリ内の全てのパートに対して、アイテムID、アイテムリビジョン、パート名を取得して情報ウィンドウに書き出す
+For Each component As Component In components
+    If component.Prototype is Nothing Then ' パートファイルの場合のみ処理する
+        Dim part As Part = CType(component.Prototype, Part)
+        Dim itemId As String = part.GetStringAttribute("ITEM_ID")
+        Dim itemRev As String = part.GetStringAttribute("ITEM_REV")
+        Dim partName As String = part.Name
+        Dim row As String = String.Format("{0},{1},{2}", itemId, itemRev, partName)
+        infoWindow.WriteFullline(row)
+    End If
+Next
+
+' 情報ウィンドウに名前をつけて保存する
+infoWindow.SaveAs("Output", "txt")
+
+' 完了メッセージを表示
+theUI.NXMessageBox.Show("Export to Listing Window", NXMessageBox.DialogType.Information, "Data exported to listing window successfully.")
+      
+    End Sub
+End Module
+
+
+
+
+
+Option Strict Off
+Imports System
+Imports NXOpen
+ 
+Module Module1
+ 
+    Sub Main()
+ 
+        Dim theSession As Session = Session.GetSession()
+        Dim theUfSession As UF.UFSession = UF.UFSession.GetUFSession
+        Dim theUi As UI = UI.GetUI
+ 
+        If IsNothing(theSession.Parts.BaseWork) Then
+            'active part required
+            Return
+        End If
+ 
+        Dim workPart As Part = theSession.Parts.Work
+        Dim lw As ListingWindow = theSession.ListingWindow
+        lw.SelectDevice(ListingWindow.DeviceType.Window, "")
+        lw.Open()
+ 
+        lw.WriteLine("Hello, world")
+        lw.Close()
+ 
+        Threading.Thread.Sleep(2000)
+ 
+        'close and clear the listing window
+        theUfSession.Ui.ExitListingWindow()
+ 
+    End Sub
+ 
+ 
+    Public Function GetUnloadOption(ByVal dummy As String) As Integer
+ 
+        'Unloads the image when the NX session terminates
+        GetUnloadOption = NXOpen.Session.LibraryUnloadOption.AtTermination
+ 
+    End Function
+ 
+End Module
