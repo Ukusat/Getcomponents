@@ -1,0 +1,72 @@
+Option Strict Off
+Imports System
+Imports System.IO
+Imports System.Collections.Generic
+Imports NXOpen
+Imports NXOpen.Assemblies
+Imports NXOpen.UF
+
+Module Module1
+
+    Dim theSession As Session = Session.GetSession()
+    Dim theUfSession As UFSession = UFSession.GetUFSession()
+    Dim theUI As UI = UI.GetUI()
+
+    Sub Main()
+        Try
+            ' ルートコンポーネントの取得
+            Dim workPart As Part = theSession.Parts.Work
+            Dim rootComponent As Component = workPart.ComponentAssembly.RootComponent
+
+            ' 情報ウィンドウの取得とヘッダーの出力
+            Dim listingWindow As ListingWindow = theSession.ListingWindow
+            listingWindow.Open()
+            listingWindow.WriteFullline("ITEMID,ITEM_REV,ITEM_NAME,LEVEL")
+
+            ' 再帰的に全てのコンポーネントの属性を出力
+            GetAllComponents(rootComponent, 0, listingWindow)
+
+            ' 完了メッセージの表示
+            theUI.NXMessageBox.Show("Export to Listing Window", NXMessageBox.DialogType.Information, "Data exported to listing window successfully.")
+
+        Catch ex As Exception
+            ' エラーの場合には、メッセージを表示して終了
+            theUI.NXMessageBox.Show("Error", NXMessageBox.DialogType.Error, ex.Message)
+        End Try
+    End Sub
+
+    ' コンポーネントを再帰的に取得して、属性を出力するサブルーチン
+    Sub GetAllComponents(ByVal component As Component, ByVal level As Integer, ByVal listingWindow As ListingWindow)
+        ' コンポーネントの属性の取得
+        Dim workPart As Part = Session.GetSession().Parts.Work
+        Dim part As Part = CType(component.Prototype, Part)
+        If part IsNot Nothing Then
+            Dim itemId As String = "DB_PART_NO未登録"
+            Dim itemRev As String = "DB_PAR_REV未登録"
+            Dim itemPN As string = "DB_TICO_PART_NO未登録"
+            Dim itemName As String = "DB_TICO_PART_NAME未登録"
+            If part.Getstringattribute("DB_PART_NO") NOT isnull then
+              itemId = part.Getstringattribute("DB_PART_NO")
+            End if
+            If part.Getstringattribute("DB_PART_REV") NOT isnull then
+              itemId = part.Getstringattribute("DB_PART_REV")
+            End if
+            If part.Getstringattribute("DB_TICO_PART_NO") NOT isnull then
+              itemId = part.Getstringattribute("DB_TICO_PART_NO")
+            End if
+            If part.Getstringattribute("DB_TICO_PART_NAME") NOT isnull then
+              itemId = part.Getstringattribute("DB_TICO_PART_NAME")
+            End if
+
+            ' 属性とレベルの出力
+            Dim row As String = String.Format("{0},{1},{2},{3}", itemId, itemRev, itemName, level)
+            listingWindow.WriteFullline(row)
+        End If
+
+        ' 子コンポーネントの再帰的な処理
+        For Each child As Component In component.GetChildren()
+            GetAllComponents(child, level + 1, listingWindow)
+        Next
+    End Sub
+
+End Module
