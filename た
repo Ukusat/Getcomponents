@@ -1,0 +1,117 @@
+' 情報ウィンドウのテキストをクリップボードにコピーする
+infoWindow.Copy()
+
+' クリップボードの内容をファイルに貼り付ける
+Dim clipboardData As IDataObject = Clipboard.GetDataObject()
+If clipboardData IsNot Nothing AndAlso clipboardData.GetDataPresent(DataFormats.Text) Then
+    Dim text As String = clipboardData.GetData(DataFormats.Text)
+    File.WriteAllText("Output.txt", text)
+End If
+
+' 完了メッセージを表示
+theUI.NXMessageBox.Show("Export to Listing Window", NXMessageBox.DialogType.Information, "Data exported to file successfully.")
+
+' 情報ウィンドウの内容をクリップボードにコピーする
+Dim clipBoard As Clipboard = theSession.Clipboard
+clipBoard.CopySelection(infoWindow)
+
+' クリップボードの内容をファイルに書き出す
+Dim filePath As String = "C:\temp\output.txt" ' 出力ファイルのパス
+Using sw As StreamWriter = New StreamWriter(filePath)
+    sw.Write(clipBoard.GetText())
+End Using
+
+' 完了メッセージを表示
+theUI.NXMessageBox.Show("Export to File", NXMessageBox.DialogType.Information, "Data exported to file successfully.")
+
+
+Option Strict Off
+Imports System
+Imports NXOpen
+Imports NXOpen.UF
+
+Module Module1
+
+    Sub Main()
+
+        Dim theSession As Session = Session.GetSession()
+        Dim theUI As UI = UI.GetUI()
+        Dim workPart As Part = theSession.Parts.Work
+        Dim lw As ListingWindow = theSession.ListingWindow
+
+        ' 情報ウィンドウを開く
+        lw.Open()
+
+        ' CSVファイルに書き出すヘッダを設定
+        Dim header As String = "Item ID,Item Revision,Part Name"
+        lw.WriteFullline(header)
+
+        ' アセンブリ内の全てのパートに対して、アイテムID、アイテムリビジョン、パート名を取得して情報ウィンドウに書き出す
+        For Each component As Component In GetAllComponents(workPart.ComponentAssembly.RootComponent)
+            If component.Prototype IsNot Nothing Then
+                Dim part As Part = CType(component.Prototype, Part)
+                Dim itemId As String = part.GetStringAttribute("ITEM_ID")
+                Dim itemRev As String = part.GetStringAttribute("ITEM_REV")
+                Dim partName As String = part.Name
+                Dim row As String = String.Format("{0},{1},{2}", itemId, itemRev, partName)
+                lw.WriteFullline(row)
+            End If
+        Next
+
+        ' 情報ウィンドウに名前をつけて保存する
+        lw.SaveAs("Output", "txt")
+
+        ' 完了メッセージを表示
+        theUI.NXMessageBox.Show("Export to Listing Window", NXMessageBox.DialogType.Information, "Data exported to listing window successfully.")
+
+    End Sub
+
+    Function GetAllComponents(ByVal rootComponent As Component) As List(Of Component)
+        Dim components As New List(Of Component)
+        components.Add(rootComponent)
+        Dim childComponents() As Component = rootComponent.GetChildren()
+        If childComponents IsNot Nothing AndAlso childComponents.Length > 0 Then
+            For Each childComponent As Component In childComponents
+                components.AddRange(GetAllComponents(childComponent))
+            Next
+        End If
+        Return components
+    End Function
+
+End Module
+
+
+' アセンブリ内の全てのコンポーネントを取得し、再帰的に処理する
+Private Sub GetAllComponents(ByVal parentComponent As Component, ByVal level As Integer)
+    ' コンポーネント内の全ての子コンポーネントを取得
+    Dim childComponents As Component() = parentComponent.GetChildren()
+    
+    ' 各子コンポーネントについて処理を実行
+    For i As Integer = 0 To childComponents.Length - 1
+        ' 子コンポーネントを取得
+        Dim childComponent As Component = childComponents(i)
+        
+        ' 子コンポーネントの情報を出力
+        Dim part As Part = TryCast(childComponent.Prototype, Part)
+        If part IsNot Nothing Then
+            ' パートファイルの場合、アイテムID、アイテムリビジョン、パート名を取得
+            Dim itemId As String = part.GetStringAttribute("ITEM_ID")
+            Dim itemRev As String = part.GetStringAttribute("ITEM_REV")
+            Dim partName As String = part.Name
+            
+            ' 出力する行の文字列を作成
+            Dim row As String = $"{itemId},{itemRev},{partName},{level}"
+            
+            ' 情報ウィンドウに出力
+            Dim infoWindow As ListingWindow = theSession.ListingWindow
+            infoWindow.WriteFullline(row)
+        End If
+        
+        ' 子コンポーネントについて再帰的に処理を実行
+        OutputComponent(childComponent, level + 1)
+    Next
+End Sub
+
+' アセンブリ内の全てのコンポーネントを取得
+Dim rootComponent As Component = workPart.ComponentAssembly.RootComponent
+OutputComponent(rootComponent, 0)
