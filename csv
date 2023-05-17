@@ -25,7 +25,7 @@ Sub ImportTxtFileData()
         
         ' "result"という新しいシートを作成する
         If resultSheet Is Nothing Then
-            Set resultSheet = ThisWorkbook.Sheets.Add
+            Set resultSheet = ThisWorkbook.Sheets.Add(After:=ThisWorkbook.Sheets(ThisWorkbook.Sheets.Count))
             resultSheet.Name = "result"
         End If
         
