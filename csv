@@ -17,29 +17,28 @@ Sub ImportTxtFileData()
         End If
     End With
     
-    ' テキストファイルを読み込む
+    ' テキストファイルを1行ずつ読み込み、データを配列に格納する
     Open filePath For Input As #1
-    fileContent = Input$(LOF(1), #1)
-    Close #1
-    
-    ' 改行文字でテキストを分割し、データを配列に格納する
-    dataArray = Split(fileContent, vbCrLf)
-    
-    ' "result"という新しいシートを作成する
-    Set resultSheet = ThisWorkbook.Sheets.Add
-    resultSheet.Name = "result"
-    
-    ' データをExcelシートに出力する
-    rowIndex = 1
-    For Each line In dataArray
-        ' コンマで行を分割し、各要素を適切な列に出力する
+    Do Until EOF(1)
+        Line Input #1, fileContent
+        dataArray = Split(fileContent, ",")
+        
+        ' "result"という新しいシートを作成する
+        If resultSheet Is Nothing Then
+            Set resultSheet = ThisWorkbook.Sheets.Add
+            resultSheet.Name = "result"
+        End If
+        
+        ' データをExcelシートに出力する
         columnIndex = 1
-        For Each item In Split(line, ",")
+        For Each item In dataArray
             resultSheet.Cells(rowIndex, columnIndex).Value = item
             columnIndex = columnIndex + 1
         Next item
+        
         rowIndex = rowIndex + 1
-    Next line
+    Loop
+    Close #1
     
     MsgBox "データの読み込みが完了しました。", vbInformation
 End Sub
