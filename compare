@@ -1,1 +1,45 @@
-
+Sub AggregateData()
+    Dim targetSheet As Worksheet
+    Dim compareSheet As Worksheet
+    Dim level As Long
+    Dim posMHValue As Variant
+    Dim compareRowIndex As Long
+    Dim compareMaxValue As Long
+    
+    ' 集計対象のシートを選択する
+    On Error Resume Next
+    Set targetSheet = Application.InputBox("集計対象のシートを選択してください", Type:=8)
+    On Error GoTo 0
+    
+    ' ユーザに階層の深さを入力させる
+    level = Application.InputBox("何階層まで出力しますか？", Type:=1)
+    
+    ' "compare"シートを作成する
+    Set compareSheet = ThisWorkbook.Sheets.Add(After:=ThisWorkbook.Sheets(ThisWorkbook.Sheets.Count))
+    compareSheet.Name = "compare"
+    
+    ' 集計対象のシートのD列を検索し、"POS-MH"という値の行を見つける
+    posMHValue = Application.Match("POS-MH", targetSheet.Columns("D"), 0)
+    
+    ' POS-MHの行から順にデータを集計する
+    If Not IsError(posMHValue) Then
+        compareRowIndex = 10 ' compareシートの書き込み開始行
+        compareMaxValue = targetSheet.Cells(posMHValue, "E").Value + level
+        
+        Do While targetSheet.Cells(posMHValue, "E").Value <= compareMaxValue
+            ' E列の数値がcompareMaxValue以下の場合、データを書き込む
+            If targetSheet.Cells(posMHValue, "E").Value <= compareMaxValue Then
+                compareSheet.Cells(compareRowIndex, "A").Value = targetSheet.Cells(posMHValue, "A").Value
+                compareSheet.Cells(compareRowIndex, "B").Value = targetSheet.Cells(posMHValue, "B").Value
+                compareSheet.Cells(compareRowIndex, "C").Value = targetSheet.Cells(posMHValue, "C").Value
+                compareSheet.Cells(compareRowIndex, "D").Value = targetSheet.Cells(posMHValue, "D").Value
+                compareSheet.Cells(compareRowIndex, "E").Value = targetSheet.Cells(posMHValue, "E").Value
+                compareRowIndex = compareRowIndex + 1
+            End If
+            
+            posMHValue = posMHValue + 1
+        Loop
+    End If
+    
+    MsgBox "データの集計が完了しました。", vbInformation
+End Sub
