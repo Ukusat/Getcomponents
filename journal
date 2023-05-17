@@ -1,141 +1,59 @@
-' ファイル出力用変数
-Dim filePath As String = "C:\path\to\output.csv"
-Dim file As New System.IO.StreamWriter(filePath, False)
-
-' アセンブリ内の全てのコンポーネントを取得
-Dim workPart As Part = theSession.Parts.Work
-Dim displayPart As Part = theSession.Parts.Display
-Dim components As Component() = workPart.ComponentAssembly.RootComponent.GetChildren()
-
-' CSVファイルに書き出すヘッダを設定
-Dim header As String = "Item ID,Item Revision,Part Name"
-file.WriteLine(header)
-
-' アセンブリ内の全てのパートに対して、アイテムID、アイテムリビジョン、パート名を取得してCSVファイルに書き出す
-For Each Tcomp As Component In components
-        Dim itemId As String = Tcomp.GetStringAttribute("ITEM_ID")
-        Dim itemRev As String = Tcomp.GetStringAttribute("ITEM_REV")
-        Dim partName As String = Tcomp.Name
-        Dim row As String = String.Format("{0},{1},{2}", itemId, itemRev, partName)
-        file.WriteLine(row)
-Next
-
-' ファイルを閉じる
-file.Close()
-
-' 完了メッセージを表示
-theUI.NXMessageBox.Show("Export to CSV", NXMessageBox.DialogType.Information, "CSV file exported successfully.")
-
-Option Strict Off
-Imports System
-Imports NXOpen
-
-Module PartInfoExporter
-    Dim theSession As Session = Session.GetSession()
-    Dim theUI As UI = UI.GetUI()
-    Dim lw As ListingWindow = theSession.ListingWindow()
-
-    Sub Main()
-        ' アクティブなパートを取得
-        Dim workPart As Part = theSession.Parts.Work
-
-        ' 選択されたコンポーネントのリストを取得
-        Dim selectedComponents() As Component = theUI.SelectionManager.GetSelectedComponents()
-
-        If selectedComponents.Length = 0 Then
-            ' アクティブなパート内のすべてのパートを取得
-            Dim components() As Component = workPart.ComponentAssembly.RootComponent.GetChildren()
-
-            ' ヘッダを表示
-            lw.WriteLine("Item ID" & vbTab & "Item Revision" & vbTab & "Part Name")
-
-            ' 各パートの情報を取得して表示
-            For Each component As Component In components
-                If component.Prototype IsNot Nothing Then
-                    Dim part As Part = CType(component.Prototype, Part)
-                    Dim itemId As String = part.GetStringAttribute("ITEM_ID")
-                    Dim itemRev As String = part.GetStringAttribute("ITEM_REV")
-                    Dim partName As String = part.Name
-
-                    lw.WriteLine(itemId & vbTab & itemRev & vbTab & partName)
-                End If
-            Next
-        Else
-            ' 選択されたコンポーネント内のすべてのパートを取得
-            Dim components() As Component = selectedComponents(0).GetChildren()
-
-            ' ヘッダを表示
-            lw.WriteLine("Item ID" & vbTab & "Item Revision" & vbTab & "Part Name")
-
-            ' 各パートの情報を取得して表示
-            For Each component As Component In components
-                If component.Prototype IsNot Nothing Then
-                    Dim part As Part = CType(component.Prototype, Part)
-                    Dim itemId As String = part.GetStringAttribute("ITEM_ID")
-                    Dim itemRev As String = part.GetStringAttribute("ITEM_REV")
-                    Dim partName As String = part.Name
-
-                    lw.WriteLine(itemId & vbTab & itemRev & vbTab & partName)
-                End If
-            Next
-        End If
-
-        ' 終了処理
-        lw.Open()
-        lw.Close()
-    End Sub
-End Module
-
-Imports System.Windows.Forms
-Imports Microsoft.Office.Interop
-
-Public Module Main
-    Sub Main()
-        Dim theSession As Session = Session.GetSession()
-        Dim workPart As Part = theSession.Parts.Work
-
-        ' Excelアプリケーションを起動する
-        Dim excelApp As New Excel.Application()
-        excelApp.Visible = True
-
-        ' 新規ワークブックを作成する
-        Dim workbook As Excel.Workbook = excelApp.Workbooks.Add()
-        Dim worksheet As Excel.Worksheet = workbook.ActiveSheet
-
-        ' ヘッダを出力する
-        worksheet.Cells(1, 1).Value = "Item ID"
-        worksheet.Cells(1, 2).Value = "Item Revision"
-        worksheet.Cells(1, 3).Value = "Part Name"
-
-        ' パートのアイテムID、アイテムリビジョン、パート名を取得し、Excelに出力する
-        Dim rowIndex As Integer = 2
-        For Each component As Component In workPart.ComponentAssembly.RootComponent.GetChildren()
-            If TypeOf component.Prototype Is Part Then ' パートファイルの場合のみ処理する
-                Dim part As Part = CType(component.Prototype, Part)
-                Dim itemId As String = part.GetStringAttribute("ITEM_ID")
-                Dim itemRev As String = part.GetStringAttribute("ITEM_REV")
-                Dim partName As String = part.Name
-
-                worksheet.Cells(rowIndex, 1).Value = itemId
-                worksheet.Cells(rowIndex, 2).Value = itemRev
-                worksheet.Cells(rowIndex, 3).Value = partName
-
-                rowIndex += 1
+Sub SelectSheet()
+    Dim sheetList As New Collection
+    Dim sheet As Worksheet
+    Dim selectedSheet As Worksheet
+    Dim selectedSheetName As String
+    Dim dialog As UserForm
+    
+    ' シートリストを作成する
+    For Each sheet In ThisWorkbook.Sheets
+        sheetList.Add sheet.Name
+    Next sheet
+    
+    ' ダイアログを作成する
+    Set dialog = UserForms.Add("SelectSheetDialog")
+    
+    ' ダイアログにシートリストを表示する
+    For Each selectedSheetName In sheetList
+        dialog.ListBox1.AddItem selectedSheetName
+    Next selectedSheetName
+    
+    ' ダイアログを表示する
+    dialog.Show
+    
+    ' 選択されたシートを取得する
+    If dialog.DialogResult = vbOK Then
+        On Error Resume Next
+        Set selectedSheet = ThisWorkbook.Sheets(dialog.ListBox1.Value)
+        On Error GoTo 0
+        
+        If Not selectedSheet Is Nothing Then
+   ' 集計対象のシートのD列を検索し、"POS-MH"という値の行を見つける
+    posMHValue = Application.Match("POS-MH", targetSheet.Columns("D"), 0)
+    
+    ' POS-MHの行から順にデータを集計する
+    If Not IsError(posMHValue) Then
+        compareRowIndex = 10 ' compareシートの書き込み開始行
+        compareMaxValue = targetSheet.Cells(posMHValue, "E").Value + level
+        
+        Do While targetSheet.Cells(posMHValue, "E").Value <= compareMaxValue
+            ' E列の数値がcompareMaxValue以下の場合、データを書き込む
+            If targetSheet.Cells(posMHValue, "E").Value <= compareMaxValue Then
+                compareSheet.Cells(compareRowIndex, "A").Value = targetSheet.Cells(posMHValue, "A").Value
+                compareSheet.Cells(compareRowIndex, "B").Value = targetSheet.Cells(posMHValue, "B").Value
+                compareSheet.Cells(compareRowIndex, "C").Value = targetSheet.Cells(posMHValue, "C").Value
+                compareSheet.Cells(compareRowIndex, "D").Value = targetSheet.Cells(posMHValue, "D").Value
+                compareSheet.Cells(compareRowIndex, "E").Value = targetSheet.Cells(posMHValue, "E").Value
+                compareRowIndex = compareRowIndex + 1
             End If
-        Next
-
-        ' Excelファイルを保存する
-        Dim saveFileDialog As New SaveFileDialog()
-        saveFileDialog.Filter = "Excel files (*.xlsx)|*.xlsx"
-        saveFileDialog.RestoreDirectory = True
-        If saveFileDialog.ShowDialog() = DialogResult.OK Then
-            workbook.SaveAs(saveFileDialog.FileName)
+            
+            posMHValue = posMHValue + 1
+        Loop
+    End If
         End If
-
-        ' Excelアプリケーションを終了する
-        workbook.Close(False)
-        excelApp.Quit()
-    End Sub
-End Module
-
+    End If
+    
+    ' ダイアログを削除する
+    Unload dialog
+End Sub
 
