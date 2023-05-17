@@ -1,34 +1,20 @@
-Sub SelectSheet()
-    Dim sheetList As New Collection
-    Dim sheet As Worksheet
-    Dim selectedSheet As Worksheet
-    Dim selectedSheetName As String
-    Dim dialog As UserForm
+Sub AggregateData()
+    Dim targetSheet As Worksheet
+    Dim level As Long
+    Dim posMHValue As Variant
+    Dim compareSheet As Worksheet
+    Dim compareRowIndex As Long
+    Dim compareMaxValue As Long
     
-    ' シートリストを作成する
-    For Each sheet In ThisWorkbook.Sheets
-        sheetList.Add sheet.Name
-    Next sheet
+    ' 集計対象のシートを選択する
+    On Error Resume Next
+    Set targetSheet = Application.InputBox("集計対象のシートを選択してください", Type:=8)
+    On Error GoTo 0
     
-    ' ダイアログを作成する
-    Set dialog = UserForms.Add("SelectSheetDialog")
+    ' ユーザに階層の深さを入力させる
+    level = Application.InputBox("何階層まで出力しますか？", Type:=1)
     
-    ' ダイアログにシートリストを表示する
-    For Each selectedSheetName In sheetList
-        dialog.ListBox1.AddItem selectedSheetName
-    Next selectedSheetName
-    
-    ' ダイアログを表示する
-    dialog.Show
-    
-    ' 選択されたシートを取得する
-    If dialog.DialogResult = vbOK Then
-        On Error Resume Next
-        Set selectedSheet = ThisWorkbook.Sheets(dialog.ListBox1.Value)
-        On Error GoTo 0
-        
-        If Not selectedSheet Is Nothing Then
-   ' 集計対象のシートのD列を検索し、"POS-MH"という値の行を見つける
+    ' 集計対象のシートのD列を検索し、"POS-MH"という値の行を見つける
     posMHValue = Application.Match("POS-MH", targetSheet.Columns("D"), 0)
     
     ' POS-MHの行から順にデータを集計する
@@ -39,21 +25,17 @@ Sub SelectSheet()
         Do While targetSheet.Cells(posMHValue, "E").Value <= compareMaxValue
             ' E列の数値がcompareMaxValue以下の場合、データを書き込む
             If targetSheet.Cells(posMHValue, "E").Value <= compareMaxValue Then
-                compareSheet.Cells(compareRowIndex, "A").Value = targetSheet.Cells(posMHValue, "A").Value
-                compareSheet.Cells(compareRowIndex, "B").Value = targetSheet.Cells(posMHValue, "B").Value
-                compareSheet.Cells(compareRowIndex, "C").Value = targetSheet.Cells(posMHValue, "C").Value
-                compareSheet.Cells(compareRowIndex, "D").Value = targetSheet.Cells(posMHValue, "D").Value
-                compareSheet.Cells(compareRowIndex, "E").Value = targetSheet.Cells(posMHValue, "E").Value
+                targetSheet.Cells(posMHValue, "A").Copy Destination:=compareSheet.Cells(compareRowIndex, "A")
+                targetSheet.Cells(posMHValue, "B").Copy Destination:=compareSheet.Cells(compareRowIndex, "B")
+                targetSheet.Cells(posMHValue, "C").Copy Destination:=compareSheet.Cells(compareRowIndex, "C")
+                targetSheet.Cells(posMHValue, "D").Copy Destination:=compareSheet.Cells(compareRowIndex, "D")
+                targetSheet.Cells(posMHValue, "E").Copy Destination:=compareSheet.Cells(compareRowIndex, "E")
                 compareRowIndex = compareRowIndex + 1
             End If
             
             posMHValue = posMHValue + 1
         Loop
     End If
-        End If
-    End If
     
-    ' ダイアログを削除する
-    Unload dialog
+    MsgBox "データの集計が完了しました。", vbInformation
 End Sub
-
