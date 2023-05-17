@@ -5,6 +5,8 @@ Sub ImportTxtFileData()
     Dim rowIndex As Long
     Dim columnIndex As Long
     Dim resultSheet As Worksheet
+    Dim sheetName As String
+    Dim sheetIndex As Integer
     
     ' ファイル選択ダイアログを表示し、txtファイルを選択させる
     With Application.FileDialog(msoFileDialogFilePicker)
@@ -30,8 +32,15 @@ Sub ImportTxtFileData()
     dataArray = Split(fileContent, vbCrLf)
     
     ' "result"という新しいシートを作成する
+    sheetName = "result"
+    sheetIndex = 1
+    Do While SheetExists(sheetName)
+        sheetIndex = sheetIndex + 1
+        sheetName = "result" & Format(sheetIndex, "00")
+    Loop
+    
     Set resultSheet = ThisWorkbook.Sheets.Add(After:=ThisWorkbook.Sheets(ThisWorkbook.Sheets.Count))
-    resultSheet.Name = "result"
+    resultSheet.Name = sheetName
     
     ' データをExcelシートに出力する
     rowIndex = 1
@@ -44,5 +53,45 @@ Sub ImportTxtFileData()
         rowIndex = rowIndex + 1
     Next line
     
+    ' シートの見た目を整える
+    With resultSheet
+        ' 列の幅を設定する
+        .Columns("A").ColumnWidth = 13
+        .Columns("B").ColumnWidth = 4
+        .Columns("C").ColumnWidth = 55
+        .Columns("D").ColumnWidth = 30
+        .Columns("E").ColumnWidth = 3
+        
+        ' 文字位置を設定する
+        .Range("A:B,E:E").HorizontalAlignment = xlCenter
+        
+        ' フォントを設定する
+        .Cells.Font.Name = "Meiryo UI"
+        
+        ' 行の間に点線の罫線を引く
+        .Cells.Rows.BorderAround xlDot, Weight:=xlThin, ColorIndex:=xlAutomatic
+        .Cells.Rows.Borders(xlInsideHorizontal).LineStyle = xlDot
+        
+        ' 列の間に実線の罫線を引く
+        .Cells.Columns.BorderAround xlContinuous, Weight:=xlThin
+        .Cells.Columns.BorderAround xlContinuous, Weight:=xlThin
+        .Cells.Columns.Borders(xlInsideVertical).LineStyle = xlContinuous
+        .Columns("B:C").Borders(xlEdgeRight).LineStyle = xlNone ' A列とB列の間に罫線を引かない
+        
+        ' セルの罫線を設定する
+        .Cells.Borders.LineStyle = xlContinuous
+        .Cells.Borders.Weight = xlThin
+    End With
+    
     MsgBox "データの読み込みが完了しました。", vbInformation
-End Su
+End Sub
+
+Function SheetExists(sheetName As String) As Boolean
+    Dim sheet As Worksheet
+    
+    On Error Resume Next
+    Set sheet = ThisWorkbook.Sheets(sheetName)
+    On Error GoTo 0
+    
+    SheetExists = Not sheet Is Nothing
+End Function
