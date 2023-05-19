@@ -1,0 +1,58 @@
+Imports Teamcenter.ClientX
+Imports Teamcenter.Services.StrongCore._2006_03.DataManagement
+
+' コンポーネントを再帰的に取得して、属性を出力するサブルーチン
+Sub GetAllComponents(ByVal component As Component, ByVal level As Integer, ByVal listingWindow As ListingWindow)
+    ' コンポーネントの属性の取得
+    Dim itemID As String = ""
+    Dim itemRev As String = ""
+    Dim itemName As String = component.Name
+
+    ' Item ID と Item Revision の取得
+    Dim itemProperties() As Property = TeamcenterUtils.GetProperties(component)
+    For Each prop As Property In itemProperties
+        If prop.Name = "item_id" Then
+            itemID = prop.StringValue
+        ElseIf prop.Name = "item_revision_id" Then
+            itemRev = prop.StringValue
+        End If
+    Next
+
+    ' 属性とレベルの出力
+    Dim row As String = String.Format("{0},{1},{2},{3}", itemID, itemRev, itemName, level)
+    listingWindow.WriteFullline(row)
+
+    ' 子コンポーネントの再帰的な処理
+    Dim children() As Component = component.GetChildren()
+    If children IsNot Nothing Then
+        For Each child As Component In children
+            If Not child.IsSuppressed Then
+                GetAllComponents(child, level + 1, listingWindow)
+            End If
+        Next
+    End If
+End Sub
+
+' Teamcenter ユーティリティクラス
+Public Class TeamcenterUtils
+    ' コンポーネントから Teamcenter の属性を取得する
+    Public Shared Function GetProperties(ByVal component As Component) As Property()
+        Dim properties() As Property = Nothing
+        Dim manager As DataManagementService = TeamcenterService.Get<DataManagementService>()
+
+        ' Teamcenter にログイン
+        ' 以下は適切なログイン情報を設定する必要があります
+        manager.Login("username", "password", "group", "role")
+
+        ' コンポーネントの Teamcenter プロパティを取得
+        Dim itemProperties() As Property = manager.GetProperties(component.Name, component.Revision, "", False)
+        If itemProperties IsNot Nothing Then
+            properties = itemProperties
+        End If
+
+        ' Teamcenter からログアウト
+        manager.Logout()
+
+        Return properties
+    End Function
+End Class
